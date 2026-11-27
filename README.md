@@ -1,58 +1,40 @@
-# TimSort + Dijkstra — Seminário de Algoritmos
+# TimSort + Dijkstra: rotas de entrega
 
-Seminário apresentado para a Professora Paula Fernanda.
-**Tema:** Aplicação prática do TimSort num algoritmo de grafos (Dijkstra).
+Implementação manual do TimSort usada dentro do algoritmo de Dijkstra para calcular a rota mais curta de um motoboy, do restaurante até cada ponto de entrega. Feito para o seminário de algoritmos da Professora Paula Fernanda.
 
----
+Só Python 3, sem bibliotecas externas.
 
-## O que esse projeto faz
+## O que o programa faz
 
-Simula o sistema de rotas de um motoboy de entrega. Dado um mapa de cruzamentos e ruas com distâncias, o programa encontra o **caminho mais curto** entre o restaurante e cada ponto de entrega usando o **algoritmo de Dijkstra**.
+`python3 main.py` roda cinco etapas em sequência:
 
-O **TimSort** entra como peça fundamental dentro do Dijkstra: ele ordena a lista de vizinhos de cada nó antes de processá-los, garantindo que os caminhos mais curtos sejam explorados primeiro.
+1. **Demonstração do TimSort**: ordena uma lista de arestas por distância com a implementação manual e compara com o `sorted()` do Python (que também é TimSort).
+2. **Dijkstra passo a passo**: imprime cada nó visitado, os vizinhos já ordenados pelo TimSort e as distâncias atualizadas.
+3. **Resultado**: menor distância e caminho completo de `R` (restaurante) até cada ponto.
+4. **Prova real**: soma à mão os caminhos possíveis de `R` até `D`, acha o menor e confere com o Dijkstra.
+5. **Benchmark**: tempo do TimSort manual contra o `sorted()` em listas aleatórias de 100, 500 e 1000 elementos.
 
----
+## Como funciona
 
-## Estrutura dos arquivos
-
-```
-Exemplo-TimSort/
-├── timsort_dijkstra.py   # código principal (TimSort + Dijkstra + prova real)
-└── README.md             # este arquivo
-```
-
----
-
-## Como rodar
-
-Só precisa do Python 3 instalado (nenhuma biblioteca externa necessária):
-
-```bash
-python3 timsort_dijkstra.py
+```mermaid
+flowchart LR
+  main[main.py] --> demo[demonstracao.py]
+  main --> dij[dijkstra.py]
+  dij --> ts[timsort.py]
+  demo --> ts
+  demo --> dij
+  dij --> mapa[mapa.py]
+  demo --> mapa
 ```
 
----
+- **`timsort.py`**: divide a lista em blocos de `MIN_RUN` (32) elementos, ordena cada bloco com Insertion Sort e depois junta os blocos com merges de tamanho dobrado (32, 64, 128...). Aceita uma função `chave`, como o `key` do `sorted()`.
+- **`dijkstra.py`**: a cada passo escolhe o nó não visitado de menor distância (busca linear, sem heap), ordena os vizinhos dele com o TimSort e relaxa as arestas. Guarda o nó anterior de cada um para reconstruir o caminho.
+- **`mapa.py`**: o grafo como lista de adjacência, `{'R': [('A', 3), ('B', 2)], ...}`.
+- **`demonstracao.py`**: demonstração, prova real e benchmark.
 
-## O que o programa exibe
+Ordenar os vizinhos não muda o resultado do Dijkstra (a escolha do próximo nó é sempre pelo menor custo acumulado); serve para mostrar o TimSort num uso real e deixar o log mais legível, com as arestas mais curtas primeiro.
 
-**1. Demonstração do TimSort**
-Mostra o TimSort ordenando uma lista de arestas por distância, e compara o resultado com o `sorted()` nativo do Python (que também é TimSort por baixo) pra provar que a implementação está correta.
-
-**2. Dijkstra passo a passo**
-Log detalhado de cada decisão: qual nó foi visitado, quais vizinhos foram ordenados pelo TimSort, e quais distâncias foram atualizadas.
-
-**3. Resultado final**
-Tabela com a menor distância e o caminho completo do restaurante (`R`) até cada ponto da cidade.
-
-**4. Prova real**
-Calcula manualmente (soma a soma) todos os caminhos possíveis entre `R` e `D`, encontra o menor, e compara com o que o Dijkstra retornou. Se baterem, confirma que o algoritmo está certo.
-
-**5. Benchmark**
-Mede o tempo do TimSort manual vs o `sorted()` do Python em listas de 100, 500 e 1000 elementos.
-
----
-
-## Mapa da cidade usado no exemplo
+### Mapa da cidade
 
 ```
         R ----3---- A ----4---- E
@@ -66,41 +48,72 @@ Mede o tempo do TimSort manual vs o `sorted()` do Python em listas de 100, 500 e
              F -------7------- G
 ```
 
-Cada letra é um cruzamento. Os números são a distância em km entre eles.
+Cada letra é um cruzamento; os números são distâncias em km. Para testar outro cenário, edite `MAPA_CIDADE` em `mapa.py` (cada aresta precisa aparecer nos dois sentidos).
 
----
+## Como rodar
 
-## Por que TimSort + Dijkstra?
+```bash
+python3 main.py
+```
 
-O Dijkstra precisa, a cada nó visitado, processar os vizinhos em alguma ordem. Ordenar esses vizinhos por peso (distância) com TimSort antes de processar garante que exploramos os caminhos mais promissores primeiro — o que complementa bem a lógica do algoritmo.
+Saída (trechos):
 
-Além disso, o TimSort é eficiente justamente em listas parcialmente ordenadas, que é exatamente o que tende a acontecer num grafo real onde as distâncias variam pouco entre vizinhos próximos.
+```
+=======================================================
+  RESULTADO — partindo de 'R'
+=======================================================
+  Destino    Distância      Caminho
+  ------------------------------------------------
+  A          3              R → A
+  B          2              R → B
+  C          5              R → A → C
+  D          8              R → A → C → D
+  E          7              R → A → E
+  F          4              R → B → F
+  G          11             R → B → F → G
 
----
+=======================================================
+  PROVA REAL — verificação manual de R → D
+=======================================================
+  ...
+  Menor manual: 8 km
+    → R → A → C → D
+    → R → A → E → D
+
+  Dijkstra: 8 km | R → A → C → D
+
+  ✅ PROVA REAL APROVADA — resultado correto!
+
+=======================================================
+  BENCHMARK — TimSort manual vs sorted() Python
+=======================================================
+
+  n=1000:
+    TimSort manual: 1.728 ms
+    sorted() Python: 0.140 ms
+    (Python é mais rápido pois está implementado em C)
+```
+
+Os tempos do benchmark variam a cada execução e de máquina para máquina.
 
 ## Complexidade
 
-| Algoritmo         | Melhor caso | Médio     | Pior caso |
-|------------------|-------------|-----------|-----------|
-| TimSort          | O(n)        | O(n log n)| O(n log n)|
-| Dijkstra (puro)  | —           | O(V²)     | O(V²)     |
-| Dijkstra + heap  | —           | O((V+E) log V) | O((V+E) log V) |
+| Algoritmo | Melhor caso | Médio | Pior caso |
+|---|---|---|---|
+| TimSort do Python (`sorted()`, detecta runs naturais) | O(n) | O(n log n) | O(n log n) |
+| TimSort didático (este projeto, blocos fixos de 32) | O(n log n) | O(n log n) | O(n log n) |
+| Dijkstra com busca linear (este projeto) | O(V²) | O(V²) | O(V²) |
+| Dijkstra com heap (referência) | O((V+E) log V) | O((V+E) log V) | O((V+E) log V) |
 
-> V = número de vértices, E = número de arestas
+V = número de vértices, E = número de arestas. Ordenar os vizinhos de cada nó soma O(E log d), onde d é o grau máximo.
 
----
-
-## Resultado esperado ao rodar
+## Estrutura
 
 ```
-Destino    Distância    Caminho completo
-A          3            R → A
-B          2            R → B
-C          5            R → A → C
-D          8            R → A → C → D
-E          7            R → A → E
-F          4            R → B → F
-G          11           R → B → F → G
-
-✅ PROVA REAL APROVADA — o Dijkstra encontrou a distância mínima correta!
+.
+├── main.py           # ponto de entrada, roda as 5 etapas
+├── timsort.py        # insertion_sort, merge, timsort
+├── dijkstra.py       # dijkstra, reconstruir_caminho, imprimir_resultado
+├── mapa.py           # grafo da cidade
+└── demonstracao.py   # demonstração, prova real e benchmark
 ```
